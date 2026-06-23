@@ -1,0 +1,30 @@
+{
+  "name": "mediavault",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "dist/electron/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.main.json",
+    "dev": "pnpm build && electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron": "^42.4.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.0.0",
+    "electron-builder": "^26.15.3",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.4",
+    "tailwindcss": "^4.3.1",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.0"
+  }
+}
