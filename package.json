@@ -9,7 +9,7 @@
     "build:renderer": "tsc -p tsconfig.renderer.json",
     "watch:main": "tsc -w -p tsconfig.main.json",
     "watch:renderer": "tsc -w -p tsconfig.renderer.json",
-    "electron": "nodemon --watch dist --exec electron .",
+    "electron": "nodemon --watch dist --exec node electron/dev-runner.cjs",
     "dev": "concurrently \"pnpm watch:main\" \"pnpm watch:renderer\" \"pnpm electron\"",
     "build": "npm run build:main && npm run build:renderer",
     "format": "prettier . --write",
