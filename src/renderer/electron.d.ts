@@ -5,7 +5,7 @@ declare global {
     api: {
       version: string;
       pickFolder: () => Promise<string | null>;
-      readFolder: (folderPath: string) => Promise<string[]>;
+      readFolder: (folder: string) => Promise<any[]>;
       getLastFolder: () => Promise<string | null>;
       saveLastFolder: (folder: string) => Promise<void>;
     };

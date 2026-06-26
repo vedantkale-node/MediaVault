@@ -8,7 +8,10 @@ async function init() {
       <div class="flex flex-row-reverse h-screen bg-zinc-950 text-white overflow-hidden">
 
   <!-- Sidebar -->
-  <aside class="w-72 shrink-0 flex flex-col bg-zinc-900 border-r border-white/5 shadow-2xl">
+  <aside
+  id="sidebar"
+  class="relative w-72 shrink-0 flex flex-col bg-zinc-900 border-r border-white/5 shadow-2xl"
+>
 
     <!-- App Header -->
     <div class="px-5 pt-6 pb-5 border-b border-white/5">
@@ -32,12 +35,15 @@ async function init() {
       </button>
     </div>
 
-    <input
-  id="search"
-  type="text"
-  placeholder="Search..."
-  class="w-full rounded-lg bg-zinc-800 px-3 py-2 text-sm outline-none ring-1 ring-zinc-700 focus:ring-violet-500"
-/>
+    <!-- NEW: Search -->
+<div class="px-2 pb-2">
+  <input
+    id="search"
+    type="text"
+    placeholder="Search..."
+    class="w-full rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white outline-none ring-1 ring-zinc-700 focus:ring-violet-500"
+  />
+</div>
 
     <!-- Folder Path -->
     <div class="px-5 py-3 border-b border-white/5 min-h-[2.75rem] flex items-center">
@@ -49,6 +55,12 @@ async function init() {
       <p class="px-3 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-500">Library</p>
       <ul id="file-list" class="space-y-0.5"></ul>
     </div>
+
+    <!-- Resize Handle -->
+<div
+  id="resize-handle"
+  class="absolute top-0 left-0 h-full w-1 cursor-ew-resize hover:bg-violet-500"
+></div>
   </aside>
 
   <!-- Main Content -->
@@ -101,12 +113,17 @@ async function init() {
     const button = document.getElementById("pick-folder");
     const pathElement = document.getElementById("folder-path");
     const fileList = document.getElementById("file-list")!;
+    const search = document.getElementById("search") as HTMLInputElement;
+    const sidebar = document.getElementById("sidebar")!;
+    const resizeHandle = document.getElementById("resize-handle")!;
+
+    let allFiles: any[] = [];
 
     function formatFileName(fileName: string) {
       return fileName
-        .replace(/\.[^/.]+$/, "") // Remove extension
-        .replace(/_/g, " ") // _ -> space
-        .replace(/\(.*?\)/g, "") // Remove (...) groups
+        .replace(/\.[^/.]+$/, "")
+        .replace(/_/g, " ")
+        .replace(/\(.*?\)/g, "")
         .trim();
     }
     function renderFiles(files: any[], fileList: HTMLElement) {
@@ -142,12 +159,39 @@ async function init() {
       });
     }
 
-    // Load last opened folder
+    let isResizing = false;
+
+    resizeHandle.addEventListener("mousedown", () => {
+      isResizing = true;
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!isResizing) return;
+
+      const width = window.innerWidth - e.clientX;
+
+      if (width >= 250 && width <= 600) {
+        sidebar.style.width = `${width}px`;
+      }
+    });
+
+    document.addEventListener("mouseup", () => {
+      isResizing = false;
+    });
+
+    search.addEventListener("input", () => {
+      const query = search.value.toLowerCase();
+
+      const filtered = allFiles.filter((file) =>
+        formatFileName(file.name).toLowerCase().includes(query),
+      );
+      renderFiles(filtered, fileList);
+    });
+
     if (lastFolder) {
-      const files = await window.api.readFolder(lastFolder);
+      allFiles = await window.api.readFolder(lastFolder);
 
-      renderFiles(files, fileList);
-
+      renderFiles(allFiles, fileList);
       pathElement!.textContent = lastFolder;
     }
     button?.addEventListener("click", async () => {
@@ -157,13 +201,15 @@ async function init() {
 
       await window.api.saveLastFolder(folder);
 
-      const files = await window.api.readFolder(folder);
+      search.value = "";
+      allFiles = await window.api.readFolder(folder);
 
-      renderFiles(files, fileList);
+      renderFiles(allFiles, fileList);
 
       pathElement!.textContent = folder;
     });
   }
 }
 
+init();
 init();
