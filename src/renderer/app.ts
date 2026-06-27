@@ -16,7 +16,7 @@ async function init() {
     <!-- App Header -->
     <div class="px-5 pt-6 pb-5 border-b border-white/5">
       <div class="flex items-center gap-2.5 mb-5">
-        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-900/40">
+        <div class="w-7 h-7 rounded-lg bg-linear-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-900/40">
           <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
             <path d="M18 3a1 1 0 0 0-1.196-.98l-10 2A1 1 0 0 0 6 5v6.499A3 3 0 1 0 8 14V8.82l8-1.6V11.5A3 3 0 1 0 18 14V3z"/>
           </svg>
@@ -46,7 +46,7 @@ async function init() {
 </div>
 
     <!-- Folder Path -->
-    <div class="px-5 py-3 border-b border-white/5 min-h-[2.75rem] flex items-center">
+    <div class="px-5 py-3 border-b border-white/5 min-h-11 flex items-center">
       <p id="folder-path" class="text-xs text-zinc-500 truncate leading-relaxed"></p>
     </div>
 
@@ -211,5 +211,4 @@ async function init() {
   }
 }
 
-init();
 init();
