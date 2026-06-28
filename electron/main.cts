@@ -3,6 +3,12 @@ const { app, BrowserWindow } = electron;
 import path from "node:path";
 import { dialog, ipcMain } from "electron";
 import fs from "node:fs/promises";
+import { parseFile } from "music-metadata";
+
+function toDataImageUrl(format: string, data: Uint8Array): string {
+  const mimeType = format.startsWith("image/") ? format : `image/${format}`;
+  return `data:${mimeType};base64,${Buffer.from(data).toString("base64")}`;
+}
 
 async function scanFolder(folderPath: string): Promise<any[]> {
   const entries = await fs.readdir(folderPath, {
@@ -22,11 +28,36 @@ async function scanFolder(folderPath: string): Promise<any[]> {
     const ext = path.extname(entry.name).toLowerCase();
 
     if (
-      [".mp3", ".wav", ".flac", ".m4a", ".mp4", ".mkv", ".webm"].includes(ext)
+      [
+        ".mp3",
+        ".wav",
+        ".flac",
+        ".m4a",
+        ".mp4",
+        ".mkv",
+        ".webm",
+        ".opus",
+      ].includes(ext)
     ) {
+      let thumbnail: string | null = null;
+      if ([".mp3", ".flac", ".m4a", ".wav", ".opus"].includes(ext)) {
+        try {
+          const metadata = await parseFile(fullPath);
+
+          const picture = metadata.common.picture?.[0];
+
+          if (picture) {
+            thumbnail = toDataImageUrl(picture.format, picture.data);
+          }
+        } catch (error) {
+          // ignore invalid or missing metadata
+        }
+      }
+
       media.push({
         name: entry.name,
         path: fullPath,
+        thumbnail,
       });
     }
   }
@@ -59,7 +90,6 @@ ipcMain.handle("get-last-folder", async () => {
       "settings.json",
     );
     const content = await fs.readFile(settingsPath, "utf8");
-    console.log("content", content);
     const settings = JSON.parse(content);
     return settings.lastFolder ?? null;
   } catch {

@@ -4,7 +4,7 @@ declare global {
   interface MediaFile {
     name: string;
     path: string;
-    ext: string;
+    thumbnail?: string | null;
   }
 
   interface Window {

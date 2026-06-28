@@ -1,3 +1,4 @@
+/// <reference path="./electron.d.ts" />
 const app = document.getElementById("app");
 
 async function init() {
@@ -126,18 +127,80 @@ async function init() {
         .replace(/\(.*?\)/g, "")
         .trim();
     }
-    function renderFiles(files: any[], fileList: HTMLElement) {
+
+    async function generateThumbnail(videoPath: string): Promise<string> {
+      return new Promise((resolve) => {
+        const video = document.createElement("video");
+        video.src = videoPath;
+        video.muted = true;
+
+        video.addEventListener("loadeddata", () => {
+          video.currentTime = 2;
+        });
+
+        video.addEventListener("seeked", () => {
+          const canvas = document.createElement("canvas");
+
+          canvas.width = 320;
+          canvas.height = 180;
+
+          const ctx = canvas.getContext("2d");
+
+          if (!ctx) {
+            resolve("");
+            return;
+          }
+
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          resolve(canvas.toDataURL("image/jpeg"));
+        });
+
+        video.addEventListener("error", () => resolve(""));
+      });
+    }
+
+    async function renderFiles(files: any[], fileList: HTMLElement) {
       fileList.innerHTML = "";
 
-      files.forEach((file) => {
+      for (const file of files) {
         const item = document.createElement("li");
         const ext = file.name.split(".").pop()?.toLowerCase();
         const isVideo = ["mp4", "mkv", "webm"].includes(ext ?? "");
-        item.textContent = `${isVideo ? "🎬" : "🎵"} ${formatFileName(file.name)}`;
+        item.innerHTML = `
+  <div class="flex items-center gap-3">
+    <img
+  src=""
+  alt="Thumbnail"
+  class="w-28 h-16 rounded object-cover shrink-0"
+/>
+
+    <div class="min-w-0 flex-1">
+  <p class="truncate text-sm font-medium text-white">
+    ${formatFileName(file.name)}
+  </p>
+
+  <p class="text-xs text-zinc-400">
+    ${isVideo ? "Video" : "Audio"}
+  </p>
+</div>
+  </div>
+`;
+        const thumbnail = item.querySelector("img") as HTMLImageElement;
+
+        if (isVideo) {
+          file.thumbnail ??= await generateThumbnail(file.path);
+        }
+
+        if (file.thumbnail) {
+          thumbnail.src = file.thumbnail;
+        } else if (!isVideo) {
+          thumbnail.src = "../.././public/assets/music-placeholder.png";
+        }
+
         item.title = file.name;
         item.className =
-          "cursor-pointer rounded px-2 py-1 hover:bg-zinc-800 truncate whitespace-nowrap overflow-hidden";
-
+          "cursor-pointer rounded-xl p-2 hover:bg-zinc-800 transition-colors";
         item.addEventListener("click", async () => {
           const player = document.getElementById("player") as HTMLMediaElement;
           const nowPlaying = document.getElementById("now-playing");
@@ -156,7 +219,7 @@ async function init() {
         });
 
         fileList.appendChild(item);
-      });
+      }
     }
 
     let isResizing = false;
@@ -179,19 +242,19 @@ async function init() {
       isResizing = false;
     });
 
-    search.addEventListener("input", () => {
+    search.addEventListener("input", async () => {
       const query = search.value.toLowerCase();
 
       const filtered = allFiles.filter((file) =>
         formatFileName(file.name).toLowerCase().includes(query),
       );
-      renderFiles(filtered, fileList);
+      await renderFiles(filtered, fileList);
     });
 
     if (lastFolder) {
       allFiles = await window.api.readFolder(lastFolder);
 
-      renderFiles(allFiles, fileList);
+      await renderFiles(allFiles, fileList);
       pathElement!.textContent = lastFolder;
     }
     button?.addEventListener("click", async () => {
@@ -204,7 +267,7 @@ async function init() {
       search.value = "";
       allFiles = await window.api.readFolder(folder);
 
-      renderFiles(allFiles, fileList);
+      await renderFiles(allFiles, fileList);
 
       pathElement!.textContent = folder;
     });
