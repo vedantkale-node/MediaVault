@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld("api", {
   getLastFolder: () => ipcRenderer.invoke("get-last-folder"),
   saveLastFolder: (folder: string) =>
     ipcRenderer.invoke("save-last-folder", folder),
+  getThumbnail: (file: any) => ipcRenderer.invoke("get-thumbnail", file),
 });

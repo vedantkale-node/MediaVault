@@ -5,11 +5,6 @@ import { dialog, ipcMain } from "electron";
 import fs from "node:fs/promises";
 import { parseFile } from "music-metadata";
 
-function toDataImageUrl(format: string, data: Uint8Array): string {
-  const mimeType = format.startsWith("image/") ? format : `image/${format}`;
-  return `data:${mimeType};base64,${Buffer.from(data).toString("base64")}`;
-}
-
 async function scanFolder(folderPath: string): Promise<any[]> {
   const entries = await fs.readdir(folderPath, {
     withFileTypes: true,
@@ -39,25 +34,10 @@ async function scanFolder(folderPath: string): Promise<any[]> {
         ".opus",
       ].includes(ext)
     ) {
-      let thumbnail: string | null = null;
-      if ([".mp3", ".flac", ".m4a", ".wav", ".opus"].includes(ext)) {
-        try {
-          const metadata = await parseFile(fullPath);
-
-          const picture = metadata.common.picture?.[0];
-
-          if (picture) {
-            thumbnail = toDataImageUrl(picture.format, picture.data);
-          }
-        } catch (error) {
-          // ignore invalid or missing metadata
-        }
-      }
-
       media.push({
         name: entry.name,
         path: fullPath,
-        thumbnail,
+        thumbnail: null,
       });
     }
   }
@@ -109,6 +89,36 @@ ipcMain.handle("save-last-folder", async (_, folder: string) => {
     settingsPath,
     JSON.stringify({ lastFolder: folder }, null, 2),
   );
+});
+
+ipcMain.handle("get-thumbnail", async (_, file: any) => {
+  const ext = path.extname(file.path).toLowerCase();
+
+  // Video
+  if ([".mp4", ".mkv", ".webm"].includes(ext)) {
+    return null;
+  }
+
+  // Audio
+  if ([".mp3", ".flac", ".m4a", ".wav", ".opus"].includes(ext)) {
+    try {
+      const metadata = await parseFile(file.path);
+
+      const picture = metadata.common.picture?.[0];
+
+      if (!picture) return null;
+
+      const mimeType = picture.format.startsWith("image/")
+        ? picture.format
+        : `image/${picture.format}`;
+
+      return `data:${mimeType};base64,${Buffer.from(picture.data).toString("base64")}`;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
 });
 
 const createWindow = () => {

@@ -14,6 +14,7 @@ declare global {
       readFolder: (folder: string) => Promise<MediaFile[]>;
       getLastFolder: () => Promise<string | null>;
       saveLastFolder: (folder: string) => Promise<void>;
+      getThumbnail(file: any): Promise<string | null>;
     };
   }
 }

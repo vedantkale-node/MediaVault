@@ -11,7 +11,7 @@ async function init() {
   <!-- Sidebar -->
   <aside
   id="sidebar"
-  class="relative w-72 shrink-0 flex flex-col bg-zinc-900 border-r border-white/5 shadow-2xl"
+  class="relative w-100 shrink-0 flex flex-col bg-zinc-900 border-r border-white/5 shadow-2xl"
 >
 
     <!-- App Header -->
@@ -188,16 +188,36 @@ async function init() {
 `;
         const thumbnail = item.querySelector("img") as HTMLImageElement;
 
-        if (isVideo) {
-          file.thumbnail ??= await generateThumbnail(file.path);
-        }
-
         if (file.thumbnail) {
           thumbnail.src = file.thumbnail;
         } else if (!isVideo) {
           thumbnail.src = "../.././public/assets/music-placeholder.png";
         }
+        //Video
+        // if (isVideo) {
+        //   thumbnail.src = "../.././public/assets/video-placeholder.png";
 
+        //   generateThumbnail(file.path).then((thumbnailData) => {
+        //     if (thumbnailData) {
+        //       thumbnail.src = thumbnailData;
+        //       file.thumbnail = thumbnailData;
+        //     }
+        //   });
+        // }
+
+        if (isVideo) {
+          file.thumbnail ??= await generateThumbnail(file.path);
+        }
+        // Audio
+        else {
+          thumbnail.src = "../.././public/assets/music-placeholder.png";
+
+          window.api.getThumbnail(file).then((cover) => {
+            if (cover) {
+              thumbnail.src = cover;
+            }
+          });
+        }
         item.title = file.name;
         item.className =
           "cursor-pointer rounded-xl p-2 hover:bg-zinc-800 transition-colors";
