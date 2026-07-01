@@ -104,6 +104,16 @@ async function init() {
     class="hidden absolute inset-0 h-full w-full object-contain z-10"
   ></video>
 
+  <!-- Volume Indicator -->
+  <div
+    id="volume-indicator"
+        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 flex items-center gap-2 rounded-full bg-black/70 backdrop-blur-md px-4 py-2 opacity-0 pointer-events-none transition-opacity duration-200"
+
+  >
+    <span id="volume-indicator-icon" class="material-symbols-rounded text-white text-[20px]">volume_up</span>
+    <span id="volume-indicator-value" class="text-white text-sm font-medium tabular-nums w-9">100%</span>
+  </div>
+
   </div>
 
   <!-- Bottom Controls -->
@@ -299,6 +309,7 @@ async function init() {
       player.muted = value === 0;
       if (value > 0) lastVolume = value;
       updateVolumeIcon();
+      flashVolumeIndicator();
     });
 
     muteToggleBtn.addEventListener("click", () => {
@@ -313,9 +324,39 @@ async function init() {
         volumeSlider.value = "0";
       }
       updateVolumeIcon();
+      flashVolumeIndicator();
     });
 
     updateVolumeIcon();
+
+    const volumeIndicator = document.getElementById("volume-indicator")!;
+    const volumeIndicatorIcon = document.getElementById(
+      "volume-indicator-icon",
+    )!;
+    const volumeIndicatorValue = document.getElementById(
+      "volume-indicator-value",
+    )!;
+    let volumeIndicatorTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    function flashVolumeIndicator() {
+      const isMuted = player.muted || player.volume === 0;
+      const percent = Math.round(player.volume * 100);
+
+      volumeIndicatorIcon.textContent = isMuted
+        ? "volume_off"
+        : player.volume < 0.5
+          ? "volume_down"
+          : "volume_up";
+
+      volumeIndicatorValue.textContent = isMuted ? "Muted" : `${percent}%`;
+
+      volumeIndicator.classList.remove("opacity-0");
+
+      clearTimeout(volumeIndicatorTimeout!);
+      volumeIndicatorTimeout = setTimeout(() => {
+        volumeIndicator.classList.add("opacity-0");
+      }, 1000);
+    }
 
     player.addEventListener("timeupdate", () => {
       progress.value = String(player.currentTime);
@@ -447,6 +488,76 @@ async function init() {
         return;
       }
       playNext();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      // Don't hijack keys while typing in the search box
+      if (document.activeElement === search) return;
+
+      switch (e.code) {
+        case "Space":
+          e.preventDefault();
+          playPauseBtn.click();
+          break;
+
+        case "ArrowRight":
+          e.preventDefault();
+          player.currentTime = Math.min(
+            player.currentTime + 5,
+            player.duration || 0,
+          );
+          break;
+
+        case "ArrowLeft":
+          e.preventDefault();
+          player.currentTime = Math.max(player.currentTime - 5, 0);
+          break;
+
+        case "ArrowUp":
+          e.preventDefault();
+          player.volume = Math.min(player.volume + 0.1, 1);
+          player.muted = false;
+          volumeSlider.value = String(player.volume * 100);
+          updateVolumeIcon();
+          flashVolumeIndicator();
+          break;
+
+        case "ArrowDown":
+          e.preventDefault();
+          player.volume = Math.max(player.volume - 0.1, 0);
+          volumeSlider.value = String(player.volume * 100);
+          updateVolumeIcon();
+          flashVolumeIndicator();
+          break;
+
+        case "KeyM":
+          muteToggleBtn.click();
+          break;
+
+        case "KeyF":
+          fullscreenBtn.click();
+          break;
+
+        case "KeyN":
+          playNext();
+          break;
+
+        case "KeyP":
+          playPrevious();
+          break;
+
+        case "KeyS":
+          shuffleBtn.click();
+          break;
+
+        case "KeyR":
+          repeatBtn.click();
+          break;
+
+        case "Escape":
+          if (document.fullscreenElement) document.exitFullscreen();
+          break;
+      }
     });
 
     let allFiles: any[] = [];
