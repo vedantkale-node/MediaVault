@@ -96,17 +96,7 @@ async function init() {
   <div
     id="placeholder"
     class="absolute inset-0 flex flex-col items-center justify-center text-zinc-500 z-10"
-  >
-    <div class="text-7xl mb-4">✨</div>
-
-    <h2 class="text-2xl font-semibold text-white">
-      Astral Echo
-    </h2>
-
-    <p class="mt-2 text-sm">
-      Select a song or video to begin.
-    </p>
-  </div>
+  ></div>
 
   <!-- Video -->
   <video
@@ -119,7 +109,8 @@ async function init() {
   <!-- Bottom Controls -->
   <div
     id="player-controls"
-    class="hidden w-full shrink-0 rounded-xl border border-white/5 bg-zinc-900 px-6 py-4"
+        class="hidden w-full shrink-0 rounded-xl border border-white/5 bg-zinc-900 px-6 py-4 transition-opacity duration-300"
+
   >
 
     <div class="flex flex-col items-center gap-4">
@@ -371,11 +362,41 @@ async function init() {
       }
     });
 
+    const playerContainer = document.getElementById("player-container")!;
+
     document.addEventListener("fullscreenchange", () => {
       const icon = fullscreenBtn.querySelector("span")!;
-      icon.textContent = document.fullscreenElement
-        ? "fullscreen_exit"
-        : "fullscreen";
+      const isFs = !!document.fullscreenElement;
+
+      icon.textContent = isFs ? "fullscreen_exit" : "fullscreen";
+
+      playerWrapper.classList.toggle("p-8", !isFs);
+      playerWrapper.classList.toggle("gap-4", !isFs);
+      playerWrapper.classList.toggle("p-0", isFs);
+      playerWrapper.classList.toggle("gap-0", isFs);
+
+      playerContainer.classList.toggle("rounded-xl", !isFs);
+      playerContainer.classList.toggle("ring-1", !isFs);
+      playerContainer.classList.toggle("ring-white/5", !isFs);
+      playerContainer.classList.toggle("shadow-2xl", !isFs);
+      playerContainer.classList.toggle("shadow-black/60", !isFs);
+
+      playerControls.classList.toggle("shrink-0", !isFs);
+      playerControls.classList.toggle("w-full", !isFs);
+      playerControls.classList.toggle("rounded-xl", !isFs);
+      playerControls.classList.toggle("border", !isFs);
+      playerControls.classList.toggle("border-white/5", !isFs);
+      playerControls.classList.toggle("bg-zinc-900", !isFs);
+
+      playerControls.classList.toggle("fixed", isFs);
+      playerControls.classList.toggle("bottom-0", isFs);
+      playerControls.classList.toggle("left-0", isFs);
+      playerControls.classList.toggle("right-0", isFs);
+      playerControls.classList.toggle("z-30", isFs);
+      playerControls.classList.toggle("bg-gradient-to-t", isFs);
+      playerControls.classList.toggle("from-black/90", isFs);
+      playerControls.classList.toggle("to-transparent", isFs);
+      playerControls.classList.toggle("pt-16", isFs);
     });
 
     // Double-click the video/cover area to toggle fullscreen, YouTube-style
@@ -384,6 +405,40 @@ async function init() {
       .addEventListener("dblclick", () => {
         fullscreenBtn.click();
       });
+
+    const playerControls = document.getElementById("player-controls")!;
+    let hideControlsTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    function showControls() {
+      if (playerControls.classList.contains("player-active")) {
+        playerControls.classList.remove("opacity-0", "pointer-events-none");
+      }
+      playerWrapper.classList.remove("cursor-none");
+      clearTimeout(hideControlsTimeout!);
+
+      if (document.fullscreenElement) {
+        hideControlsTimeout = setTimeout(() => {
+          if (!player.paused) {
+            playerControls.classList.add("opacity-0", "pointer-events-none");
+            playerWrapper.classList.add("cursor-none");
+          }
+        }, 3000);
+      }
+    }
+
+    playerWrapper.addEventListener("mousemove", showControls);
+    playerWrapper.addEventListener("mouseleave", () => {
+      if (document.fullscreenElement) {
+        clearTimeout(hideControlsTimeout!);
+        if (!player.paused) {
+          playerControls.classList.add("opacity-0", "pointer-events-none");
+        }
+      }
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+      showControls();
+    });
 
     player.addEventListener("ended", () => {
       if (isRepeat) {
@@ -458,6 +513,8 @@ async function init() {
       const controls = document.getElementById("player-controls")!;
 
       controls.classList.remove("hidden");
+      controls.classList.add("player-active");
+
       player.src = file.path;
       placeholder.classList.add("hidden");
 
