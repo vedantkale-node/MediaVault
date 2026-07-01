@@ -82,30 +82,118 @@ async function init() {
     id="player-container"
     class="relative w-full h-full flex items-center justify-center rounded-xl bg-zinc-900 shadow-2xl shadow-black/60 ring-1 ring-white/5 overflow-hidden"
   >
-    <!-- Placeholder -->
-    <div
-      id="placeholder"
-      class="absolute inset-0 flex flex-col items-center justify-center text-zinc-500"
-    >
-      <div class="text-7xl mb-4">✨</div>
 
-      <h2 class="text-2xl font-semibold text-white">
-        Astral Echo
-      </h2>
 
-      <p class="mt-2 text-sm">
-        Select a song or video to begin.
-      </p>
-    </div>
+  <!-- Background -->
+  <img
+    id="background-cover"
+    src="../.././public/assets/music-placeholder.png"
+    class="absolute inset-0 z-10 w-full h-full object-cover bg-black/30"
+  />
 
-    <!-- Player -->
-    <video
-      id="player"
-      controls
-      class="hidden h-full w-full object-contain"
-    ></video>
+  <div class="absolute inset-0 bg-black/50"></div>
+
+  <!-- Placeholder -->
+  <div
+    id="placeholder"
+    class="absolute inset-0 flex flex-col items-center justify-center text-zinc-500 z-10"
+  >
+    <div class="text-7xl mb-4">✨</div>
+
+    <h2 class="text-2xl font-semibold text-white">
+      Astral Echo
+    </h2>
+
+    <p class="mt-2 text-sm">
+      Select a song or video to begin.
+    </p>
   </div>
+
+  <!-- Video -->
+  <video
+    id="player"
+    class="hidden absolute inset-0 h-full w-full object-contain z-10"
+  ></video>
+
+  <!-- Bottom Controls -->
+  <div
+    id="player-controls"
+    class="hidden absolute bottom-0 left-0 right-0 z-20 border-t border-white/10 bg-zinc-950/90 backdrop-blur-xl px-6 py-4"
+  >
+
+    <div class="flex flex-col items-center gap-4">
+
+
+
+
+
+  <!-- Center -->
+  <div class="w-full max-w-4xl">
+
+
+
+    <div class="flex justify-center gap-5 mb-4">
+
+  <button id="shuffle">
+    <span class="material-symbols-rounded">shuffle</span>
+  </button>
+
+  <button id="previous">
+    <span class="material-symbols-rounded">skip_previous</span>
+  </button>
+
+  <button
+    id="play-pause"
+    class="flex h-14 w-14 items-center justify-center rounded-full bg-violet-600 hover:bg-violet-500 active:scale-95 transition-all shadow-xl shadow-violet-900/40"
+  >
+    <span class="material-symbols-rounded">play_arrow</span>
+  </button>
+
+  <button id="next">
+    <span class="material-symbols-rounded">skip_next</span>
+  </button>
+
+  <button id="repeat">
+    <span class="material-symbols-rounded">repeat</span>
+  </button>
+
 </div>
+
+<div class="flex items-center gap-3 w-full">
+
+  <span
+    id="current-time"
+    class="w-10 text-right text-xs text-zinc-400"
+  >
+    0:00
+  </span>
+
+  <input
+    id="progress"
+    type="range"
+    min="0"
+    max="100"
+    value="0"
+    class="flex-1 accent-violet-500"
+  />
+
+  <span
+    id="duration"
+    class="w-10 text-xs text-zinc-400"
+  >
+    0:00
+  </span>
+
+</div>
+
+  </div>
+
+</div>
+
+  </div>
+
+</div>
+
 
   </main>
 </div>
@@ -118,6 +206,46 @@ async function init() {
     const sidebar = document.getElementById("sidebar")!;
     const resizeHandle = document.getElementById("resize-handle")!;
 
+    const player = document.getElementById("player") as HTMLMediaElement;
+    const playPauseBtn = document.getElementById("play-pause")!;
+    const progress = document.getElementById("progress") as HTMLInputElement;
+    const currentTimeEl = document.getElementById("current-time")!;
+    const durationEl = document.getElementById("duration")!;
+
+    function formatTime(sec: number) {
+      if (!isFinite(sec)) return "0:00";
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60)
+        .toString()
+        .padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    playPauseBtn.addEventListener("click", () => {
+      if (player.paused) player.play();
+      else player.pause();
+    });
+
+    player.addEventListener("play", () => {
+      playPauseBtn.querySelector("span")!.textContent = "pause";
+    });
+    player.addEventListener("pause", () => {
+      playPauseBtn.querySelector("span")!.textContent = "play_arrow";
+    });
+
+    player.addEventListener("loadedmetadata", () => {
+      progress.max = String(player.duration);
+      durationEl.textContent = formatTime(player.duration);
+    });
+
+    player.addEventListener("timeupdate", () => {
+      progress.value = String(player.currentTime);
+      currentTimeEl.textContent = formatTime(player.currentTime);
+    });
+
+    progress.addEventListener("input", () => {
+      player.currentTime = Number(progress.value);
+    });
     let allFiles: any[] = [];
 
     function formatFileName(fileName: string) {
@@ -131,8 +259,10 @@ async function init() {
     async function generateThumbnail(videoPath: string): Promise<string> {
       return new Promise((resolve) => {
         const video = document.createElement("video");
-        video.src = videoPath;
+        video.preload = "auto";
         video.muted = true;
+        video.src = videoPath;
+        video.load();
 
         video.addEventListener("loadeddata", () => {
           video.currentTime = 2;
@@ -207,32 +337,64 @@ async function init() {
 
         if (isVideo) {
           file.thumbnail ??= await generateThumbnail(file.path);
+          if (file.thumbnail) thumbnail.src = file.thumbnail;
         }
         // Audio
         else {
-          thumbnail.src = "../.././public/assets/music-placeholder.png";
-
-          window.api.getThumbnail(file).then((cover) => {
-            if (cover) {
-              thumbnail.src = cover;
-            }
-          });
+          if (!file.thumbnail) {
+            thumbnail.src = "../.././public/assets/music-placeholder.png";
+            window.api.getThumbnail(file).then((cover) => {
+              if (cover) {
+                file.thumbnail = cover;
+                thumbnail.src = cover;
+              }
+            });
+          }
         }
         item.title = file.name;
         item.className =
           "cursor-pointer rounded-xl p-2 hover:bg-zinc-800 transition-colors";
         item.addEventListener("click", async () => {
-          const player = document.getElementById("player") as HTMLMediaElement;
-          const nowPlaying = document.getElementById("now-playing");
-          const placeholder = document.getElementById("placeholder");
+          document.getElementById("now-playing")!.textContent = formatFileName(
+            file.name,
+          );
+
+          const placeholder = document.getElementById("placeholder")!;
+          const backgroundCover = document.getElementById(
+            "background-cover",
+          ) as HTMLImageElement;
+
+          const controls = document.getElementById("player-controls")!;
+
+          controls.classList.remove("hidden");
 
           player.src = file.path;
 
-          player.classList.remove("hidden");
-          placeholder?.classList.add("hidden");
+          placeholder.classList.add("hidden");
 
-          if (nowPlaying) {
-            nowPlaying.textContent = file.name;
+          if (isVideo) {
+            player.classList.remove("hidden");
+
+            backgroundCover.classList.add("hidden");
+          } else {
+            player.classList.add("hidden");
+
+            backgroundCover.classList.remove("hidden");
+
+            let cover = file.thumbnail;
+
+            if (!cover) {
+              cover = await window.api.getThumbnail(file);
+              file.thumbnail = cover;
+            }
+            const bg = cover ?? "../.././public/assets/music-placeholder.png";
+
+            backgroundCover.style.opacity = "0";
+
+            setTimeout(() => {
+              backgroundCover.src = bg;
+              backgroundCover.style.opacity = "0.3";
+            }, 150);
           }
 
           await player.play();
@@ -250,7 +412,7 @@ async function init() {
 
     document.addEventListener("mousemove", (e) => {
       if (!isResizing) return;
-
+      e.preventDefault();
       const width = window.innerWidth - e.clientX;
 
       if (width >= 250 && width <= 600) {
