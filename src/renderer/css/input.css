@@ -1,1 +1,8 @@
 @import "tailwindcss";
+
+button:focus,
+input:focus,
+button:focus-visible,
+input:focus-visible {
+  outline: none;
+}
