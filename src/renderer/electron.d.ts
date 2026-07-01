@@ -15,6 +15,10 @@ declare global {
       getLastFolder: () => Promise<string | null>;
       saveLastFolder: (folder: string) => Promise<void>;
       getThumbnail(file: any): Promise<string | null>;
+      getLastPlayed: () => Promise<string | null>;
+      saveLastPlayed: (filePath: string) => Promise<void>;
+      getVolume: () => Promise<number>;
+      saveVolume: (volume: number) => Promise<void>;
     };
   }
 }

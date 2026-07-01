@@ -61,34 +61,53 @@ ipcMain.handle("read-folder", async (_, folderPath: string) => {
   return files;
 });
 
-ipcMain.handle("get-last-folder", async () => {
+const settingsPath = path.join(
+  process.cwd(),
+  "electron",
+  "storage",
+  "settings.json",
+);
+
+async function readSettings(): Promise<Record<string, any>> {
   try {
-    const settingsPath = path.join(
-      process.cwd(),
-      "electron",
-      "storage",
-      "settings.json",
-    );
     const content = await fs.readFile(settingsPath, "utf8");
-    const settings = JSON.parse(content);
-    return settings.lastFolder ?? null;
+    return JSON.parse(content);
   } catch {
-    return null;
+    return {};
   }
+}
+
+async function writeSettings(patch: Record<string, any>) {
+  const current = await readSettings();
+  const updated = { ...current, ...patch };
+  await fs.writeFile(settingsPath, JSON.stringify(updated, null, 2));
+}
+
+ipcMain.handle("get-last-folder", async () => {
+  const settings = await readSettings();
+  return settings.lastFolder ?? null;
 });
 
 ipcMain.handle("save-last-folder", async (_, folder: string) => {
-  const settingsPath = path.join(
-    process.cwd(),
-    "electron",
-    "storage",
-    "settings.json",
-  );
+  await writeSettings({ lastFolder: folder });
+});
 
-  await fs.writeFile(
-    settingsPath,
-    JSON.stringify({ lastFolder: folder }, null, 2),
-  );
+ipcMain.handle("get-last-played", async () => {
+  const settings = await readSettings();
+  return settings.lastPlayedPath ?? null;
+});
+
+ipcMain.handle("save-last-played", async (_, filePath: string) => {
+  await writeSettings({ lastPlayedPath: filePath });
+});
+
+ipcMain.handle("get-volume", async () => {
+  const settings = await readSettings();
+  return typeof settings.volume === "number" ? settings.volume : 1;
+});
+
+ipcMain.handle("save-volume", async (_, volume: number) => {
+  await writeSettings({ volume });
 });
 
 ipcMain.handle("get-thumbnail", async (_, file: any) => {

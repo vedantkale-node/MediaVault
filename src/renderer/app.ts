@@ -18,9 +18,7 @@ async function init() {
     <div class="px-5 pt-6 pb-5 border-b border-white/5">
       <div class="flex items-center gap-2.5 mb-5">
         <div class="w-7 h-7 rounded-lg bg-linear-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-900/40">
-          <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M18 3a1 1 0 0 0-1.196-.98l-10 2A1 1 0 0 0 6 5v6.499A3 3 0 1 0 8 14V8.82l8-1.6V11.5A3 3 0 1 0 18 14V3z"/>
-          </svg>
+          <img src="../.././public/assets/icon-main.png">
         </div>
         <h1 class="text-[15px] font-semibold tracking-tight text-white">Astral Echo</h1>
       </div>
@@ -310,6 +308,7 @@ async function init() {
       if (value > 0) lastVolume = value;
       updateVolumeIcon();
       flashVolumeIndicator();
+      saveVolumeDebounced();
     });
 
     muteToggleBtn.addEventListener("click", () => {
@@ -325,6 +324,7 @@ async function init() {
       }
       updateVolumeIcon();
       flashVolumeIndicator();
+      saveVolumeDebounced();
     });
 
     updateVolumeIcon();
@@ -358,10 +358,25 @@ async function init() {
       }, 1000);
     }
 
+    window.api.getVolume().then((savedVolume) => {
+      player.volume = savedVolume;
+      volumeSlider.value = String(savedVolume * 100);
+      if (savedVolume > 0) lastVolume = savedVolume;
+      updateVolumeIcon();
+    });
+
     player.addEventListener("timeupdate", () => {
       progress.value = String(player.currentTime);
       currentTimeEl.textContent = formatTime(player.currentTime);
     });
+
+    let volumeSaveTimeout: ReturnType<typeof setTimeout> | null = null;
+    function saveVolumeDebounced() {
+      clearTimeout(volumeSaveTimeout!);
+      volumeSaveTimeout = setTimeout(() => {
+        window.api.saveVolume(player.muted ? 0 : player.volume);
+      }, 400);
+    }
 
     progress.addEventListener("input", () => {
       player.currentTime = Number(progress.value);
@@ -520,6 +535,7 @@ async function init() {
           volumeSlider.value = String(player.volume * 100);
           updateVolumeIcon();
           flashVolumeIndicator();
+          saveVolumeDebounced();
           break;
 
         case "ArrowDown":
@@ -528,6 +544,7 @@ async function init() {
           volumeSlider.value = String(player.volume * 100);
           updateVolumeIcon();
           flashVolumeIndicator();
+          saveVolumeDebounced();
           break;
 
         case "KeyM":
@@ -612,6 +629,8 @@ async function init() {
     ) {
       currentPlaylist = list;
       currentIndex = index;
+
+      window.api.saveLastPlayed(file.path);
 
       document.getElementById("now-playing")!.textContent = formatFileName(
         file.name,
@@ -789,6 +808,51 @@ async function init() {
 
       await renderFiles(allFiles, fileList);
       pathElement!.textContent = lastFolder;
+
+      const lastPlayedPath = await window.api.getLastPlayed();
+      if (lastPlayedPath) {
+        const lastIndex = allFiles.findIndex((f) => f.path === lastPlayedPath);
+        if (lastIndex !== -1) {
+          const file = allFiles[lastIndex];
+          const ext = file.name.split(".").pop()?.toLowerCase();
+          const isVideo = ["mp4", "mkv", "webm"].includes(ext ?? "");
+
+          currentPlaylist = allFiles;
+          currentIndex = lastIndex;
+
+          document.getElementById("now-playing")!.textContent = formatFileName(
+            file.name,
+          );
+
+          const placeholder = document.getElementById("placeholder")!;
+          const backgroundCover = document.getElementById(
+            "background-cover",
+          ) as HTMLImageElement;
+          const controls = document.getElementById("player-controls")!;
+
+          controls.classList.remove("hidden");
+          controls.classList.add("player-active");
+          player.src = file.path;
+          placeholder.classList.add("hidden");
+
+          if (isVideo) {
+            player.classList.remove("hidden");
+            backgroundCover.classList.add("hidden");
+          } else {
+            player.classList.add("hidden");
+            backgroundCover.classList.remove("hidden");
+
+            let cover = file.thumbnail;
+            if (!cover) {
+              cover = await window.api.getThumbnail(file);
+              file.thumbnail = cover;
+            }
+            backgroundCover.src =
+              cover ?? "../.././public/assets/music-placeholder.png";
+            backgroundCover.style.opacity = "1";
+          }
+        }
+      }
     }
     button?.addEventListener("click", async () => {
       const folder = await window.api.pickFolder();

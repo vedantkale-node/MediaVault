@@ -9,4 +9,9 @@ contextBridge.exposeInMainWorld("api", {
   saveLastFolder: (folder: string) =>
     ipcRenderer.invoke("save-last-folder", folder),
   getThumbnail: (file: any) => ipcRenderer.invoke("get-thumbnail", file),
+  getLastPlayed: () => ipcRenderer.invoke("get-last-played"),
+  saveLastPlayed: (filePath: string) =>
+    ipcRenderer.invoke("save-last-played", filePath),
+  getVolume: () => ipcRenderer.invoke("get-volume"),
+  saveVolume: (volume: number) => ipcRenderer.invoke("save-volume", volume),
 });
