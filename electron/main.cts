@@ -1,7 +1,7 @@
 import * as electron from "electron/main";
 const { app, BrowserWindow } = electron;
 import path from "node:path";
-import { dialog, ipcMain } from "electron";
+import { dialog, ipcMain, Menu } from "electron";
 import fs from "node:fs/promises";
 import { parseFile } from "music-metadata";
 
@@ -123,8 +123,7 @@ ipcMain.handle("get-thumbnail", async (_, file: any) => {
 
 const createWindow = () => {
   const win = new BrowserWindow({
-    width: 1400,
-    height: 900,
+    icon: path.join(process.cwd(), "public", "assets", "icon.ico"),
     webPreferences: {
       preload: path.join(process.cwd(), "dist", "electron", "preload.cjs"),
     },
@@ -135,8 +134,7 @@ const createWindow = () => {
     width: 1235,
     height: 700,
   });
-  win.webContents.openDevTools();
-
+  Menu.setApplicationMenu(null);
   win.loadFile(path.join(process.cwd(), "src", "renderer", "index.html"));
 };
 
